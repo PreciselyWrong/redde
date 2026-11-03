@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Makes the sound voice mode plays while the agent works: Echo/Resources/Earcons/thinking.wav.
+"""Makes the sound voice mode plays while the agent works: feature/voice/src/main/res/raw/thinking.wav.
 
 Someone typing on a keyboard, looped: about seven seconds of a real recording, runs of keys
 with the pauses between them, played round and round. Asked for on 2026-10-27, after ElevenLabs'
@@ -15,7 +15,7 @@ about 14 dB under the old pulse's loudness (as loud, it was "kind of loud"), and
 at both ends. Needs ffmpeg.
 
     python3 scripts/thinking-sound.py <recording> [start end]   # seconds; 6.10 13.25 by default
-Listen to the result on a Mac:   afplay Echo/Resources/Earcons/thinking.wav
+Listen to the result on a Mac:   afplay feature/voice/src/main/res/raw/thinking.wav
 """
 import math
 import struct
@@ -44,7 +44,7 @@ def main() -> None:
         sys.exit(__doc__)
     source = sys.argv[1]
     start, end = (float(sys.argv[2]), float(sys.argv[3])) if len(sys.argv) == 4 else (START, END)
-    out = Path(__file__).resolve().parent.parent / "Echo" / "Resources" / "Earcons" / "thinking.wav"
+    out = Path(__file__).resolve().parent.parent / "feature" / "voice" / "src" / "main" / "res" / "raw" / "thinking.wav"
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", source, "-af", FILTERS.format(start=start, end=end),
                     "-ac", "1", "-ar", "44100", "-c:a", "pcm_s16le", "-map_metadata", "-1", str(out)], check=True)
     with wave.open(str(out)) as file:

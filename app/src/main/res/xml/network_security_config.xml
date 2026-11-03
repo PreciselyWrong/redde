@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hermes and model servers often run on a home network over plain http (as on iOS, where
+     Redde allows local networking), so cleartext is allowed; credentials are only sent where
+     the user pointed the app. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

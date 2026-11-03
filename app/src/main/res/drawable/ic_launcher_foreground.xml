@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The speech bubble and spark of design/icons/redde-graphite.svg, inside the adaptive icon's
+     66dp safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <group android:translateX="22" android:translateY="21" android:scaleX="1.0" android:scaleY="1.0">
+        <path android:fillColor="#232A37"
+            android:pathData="M32,9 C45.5,9 55.5,18.5 55.5,31 C55.5,43.5 45.5,53 32,53 C28.5,53 25.3,52.4 22.4,51.2 L12.5,55.5 L14.6,46 C10.8,42 8.5,36.8 8.5,31 C8.5,18.5 18.5,9 32,9 Z" />
+        <path android:fillColor="#E8B04B"
+            android:pathData="M39.8,13.9 Q39.8,20.2 46.1,20.2 Q39.8,20.2 39.8,26.5 Q39.8,20.2 33.5,20.2 Q39.8,20.2 39.8,13.9 Z" />
+    </group>
+</vector>

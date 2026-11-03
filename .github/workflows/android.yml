@@ -1,0 +1,39 @@
+# Builds and tests the Android app on every push and pull request: the JVM modules' unit tests,
+# Android lint, and a debug APK kept as an artifact.
+name: Android
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v5
+      - name: Unit tests
+        run: ./gradlew test --stacktrace
+      - name: Lint
+        run: ./gradlew :app:lintDebug
+      - name: Debug APK
+        run: ./gradlew :app:assembleDebug
+      - uses: actions/upload-artifact@v5
+        with:
+          name: redde-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error

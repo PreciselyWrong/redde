@@ -12,10 +12,9 @@ a reply within a few days, and credit in the release notes if you'd like it.
 
 ## Scope
 
-- The Redde app for iPhone, iPad and CarPlay (the latest App Store release and `main`).
-- The companion code in this repository: the push relay Worker, the website and the calendar MCP
-  server.
+- The Redde app for Android phones and tablets (the latest release and `main`).
+- The companion code in this repository: the push relay Worker, the website and the Hermes plugin.
 
 Problems in Hermes itself belong with the [Hermes Agent project](https://github.com/NousResearch/hermes-agent).
-Redde never stores or sends your credentials anywhere but your own server and the iOS Keychain; a
+Redde never stores or sends your credentials anywhere but your own server and the device, encrypted with an Android Keystore key; a
 way around that is exactly the kind of report we want.

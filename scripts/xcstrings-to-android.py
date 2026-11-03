@@ -1,0 +1,177 @@
+#!/usr/bin/env python3
+"""Convert Apple String Catalogs (.xcstrings) into Android string resources.
+
+Used once to carry the iOS translations over to the Android app; kept so the
+conversion can be re-run against the iOS reference commit:
+
+    git show 37a2db7:Echo/Resources/Localizable.xcstrings > /tmp/L.xcstrings
+    scripts/xcstrings-to-android.py --out app/src/main/res --map docs/porting/strings-map.json /tmp/L.xcstrings
+
+Each catalog key (the English text) becomes a snake_case resource name. The
+mapping English text -> resource name is written to --map so screens being
+ported can look up the resource that holds a given iOS string.
+"""
+
+import argparse
+import json
+import re
+import sys
+import unicodedata
+from pathlib import Path
+from xml.sax.saxutils import escape
+
+PLURAL_KINDS = ("zero", "one", "two", "few", "many", "other")
+
+# Apple locale -> Android resource qualifier.
+QUALIFIERS = {
+    "en": "values",
+    "pt-BR": "values-pt-rBR",
+    "zh-Hans": "values-b+zh+Hans",
+    "zh-Hant": "values-b+zh+Hant",
+    "nb": "values-nb",
+}
+
+SPEC = re.compile(r"%(?:(\d+)\$)?(@|lld|llu|ld|lu|d|i|u|lf|f|\.\d+f|s|%)")
+
+
+def qualifier(lang):
+    return QUALIFIERS.get(lang, f"values-{lang}")
+
+
+def convert_format(text):
+    """Turn Apple format specifiers into Java ones, numbering them when there are several."""
+    specs = [m for m in SPEC.finditer(text) if m.group(2) != "%"]
+    number = len(specs) > 1
+    out, last, index = [], 0, 0
+    for m in SPEC.finditer(text):
+        out.append(text[last:m.start()])
+        last = m.end()
+        kind = m.group(2)
+        if kind == "%":
+            out.append("%%")
+            continue
+        index += 1
+        position = m.group(1) or (str(index) if number else None)
+        java = {"@": "s", "s": "s", "lld": "d", "llu": "d", "ld": "d", "lu": "d",
+                "d": "d", "i": "d", "u": "d", "lf": "f", "f": "f"}.get(kind, kind)
+        out.append(f"%{position}${java}" if position else f"%{java}")
+    out.append(text[last:])
+    return "".join(out), bool(specs)
+
+
+def android_escape(text):
+    text = escape(text)
+    text = text.replace("\\", "\\\\").replace("'", "\\'").replace('"', '\\"')
+    text = text.replace("\n", "\\n").replace("\t", "\\t")
+    if text.startswith(("@", "?")):
+        text = "\\" + text
+    return text
+
+
+def resource_name(key, taken):
+    ascii_key = unicodedata.normalize("NFKD", key).encode("ascii", "ignore").decode()
+    ascii_key = SPEC.sub(" x ", ascii_key)
+    words = re.findall(r"[A-Za-z0-9]+", ascii_key.lower())[:7]
+    base = "_".join(words) or "string"
+    if base[0].isdigit():
+        base = "s_" + base
+    name, n = base, 2
+    while name in taken:
+        name = f"{base}_{n}"
+        n += 1
+    taken.add(name)
+    return name
+
+
+def entry_values(key, entry, lang, source):
+    """Return ('string', text) or ('plurals', {kind: text}) for one language, or None."""
+    loc = entry.get("localizations", {}).get(lang)
+    if loc is None and lang == source:
+        return ("string", key)
+    if loc is None:
+        return None
+    if "stringUnit" in loc:
+        return ("string", loc["stringUnit"]["value"])
+    plural = loc.get("variations", {}).get("plural")
+    if plural:
+        return ("plurals", {k: v["stringUnit"]["value"] for k, v in plural.items() if "stringUnit" in v})
+    device = loc.get("variations", {}).get("device")
+    if device:
+        unit = device.get("other") or next(iter(device.values()))
+        return ("string", unit["stringUnit"]["value"])
+    return None
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--out", required=True, help="res/ directory to write into")
+    ap.add_argument("--map", required=True, help="where to write the English text -> name map")
+    ap.add_argument("--file-name", default="strings.xml")
+    ap.add_argument("catalogs", nargs="+")
+    args = ap.parse_args()
+
+    merged, source = {}, "en"
+    for path in args.catalogs:
+        data = json.loads(Path(path).read_text())
+        source = data.get("sourceLanguage", source)
+        for key, entry in data["strings"].items():
+            if not key.strip() or entry.get("shouldTranslate") is False:
+                continue
+            merged.setdefault(key, entry)
+
+    languages = {source}
+    for entry in merged.values():
+        languages.update(entry.get("localizations", {}).keys())
+
+    taken, names = set(), {}
+    for key in sorted(merged):
+        names[key] = resource_name(key, taken)
+
+    # A key that is a plural in any language is a <plurals> everywhere.
+    plural_keys = {key for key, entry in merged.items()
+                   if any(lang_values and lang_values[0] == "plurals"
+                          for lang_values in (entry_values(key, entry, lang, source)
+                                              for lang in entry.get("localizations", {})))}
+
+    for lang in sorted(languages):
+        lines = ['<?xml version="1.0" encoding="utf-8"?>',
+                 "<!-- Generated by scripts/xcstrings-to-android.py from the iOS String Catalogs. -->",
+                 '<resources xmlns:tools="http://schemas.android.com/tools">']
+        count = 0
+        for key in sorted(merged, key=lambda k: names[k]):
+            values = entry_values(key, merged[key], lang, source)
+            if values is None:
+                continue
+            kind, payload = values
+            if key in plural_keys and kind == "string":
+                kind, payload = "plurals", {"other": payload}
+            name = names[key]
+            comment = merged[key].get("comment")
+            if lang == source and comment:
+                lines.append(f"    <!-- {escape(comment).replace('--', '- -')} -->")
+            if kind == "string":
+                text, formatted = convert_format(payload)
+                attr = "" if formatted or "%%" not in text else ' formatted="false"'
+                if attr:
+                    text = text.replace("%%", "%")
+                lines.append(f'    <string name="{name}"{attr}>{android_escape(text)}</string>')
+            else:
+                lines.append(f'    <plurals name="{name}">')
+                for plural_kind in PLURAL_KINDS:
+                    if plural_kind in payload:
+                        text, _ = convert_format(payload[plural_kind])
+                        lines.append(f'        <item quantity="{plural_kind}">{android_escape(text)}</item>')
+                lines.append("    </plurals>")
+            count += 1
+        lines.append("</resources>")
+        folder = Path(args.out) / qualifier(lang)
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / args.file_name).write_text("\n".join(lines) + "\n")
+        print(f"{qualifier(lang)}: {count} entries", file=sys.stderr)
+
+    Path(args.map).parent.mkdir(parents=True, exist_ok=True)
+    Path(args.map).write_text(json.dumps(names, ensure_ascii=False, indent=1, sort_keys=True) + "\n")
+
+
+if __name__ == "__main__":
+    main()

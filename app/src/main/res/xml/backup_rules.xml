@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Secrets are encrypted with a Keystore key that never leaves the device: backing them up
+     would only carry unreadable bytes, so they are left out. -->
+<full-backup-content>
+    <exclude domain="sharedpref" path="secrets.xml" />
+    <exclude domain="file" path="secrets" />
+</full-backup-content>
