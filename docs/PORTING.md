@@ -27,7 +27,7 @@ widgets and Control Center (Glance), the Mac build, AirPods head gestures (no An
 | `Echo/Resources/Fonts` | `app/src/main/res/font` | 0 | moved |
 | `Echo/Resources/Earcons`, `VoiceWords.json` | `feature/voice/src/main/res/raw`, `feature/voice/src/main/assets` | 0 | moved |
 | `Echo/Models/*`, `Shared/Attachment.swift`, `Shared/ReplyMedia.swift` | `core/model` | 1 | messages, turn events, interrupts, attachments, setup codes, custom headers, Pangolin, agent notes done; reply cards to do (phase 4) |
-| `Echo/Services/Transport/*`, `SessionBackend.swift`, `ConversationHistory.swift`, `ConnectionTester.swift`, `DashboardSignIn.swift` | `core/transport` | 1 | SSE, streaming HTTP, errors, OpenAI-compatible and Hermes API (sessions REST, runs, chat stream) transports done; transcript mapping (`ConversationHistory`, `BotMessages`) done; Dashboard (`HermesServeClient`/`Transport`), `SessionBackend`, `ConnectionTester` to do |
+| `Echo/Services/Transport/*`, `SessionBackend.swift`, `ConversationHistory.swift`, `ConnectionTester.swift`, `DashboardSignIn.swift` | `core/transport` | 1 | done: SSE, streaming HTTP, errors, OpenAI-compatible, Hermes API (REST, runs, chat stream), transcripts (`ConversationHistory`, `BotMessages`), Dashboard client (password and no-sign-in login, ws-ticket, JSON-RPC socket with ping and reconnect, host requests and answers, sessions, slash commands) and turn (with 90 s recovery). To do: Dashboard browser sign-in (PKCE), `rejoin`/`watchHost`, Dashboard REST extras (skills, files, toolsets, projects, profiles, plugins), `SessionBackend`, `ConnectionTester`, bots/groups/plugins transports, `TodoList` from tool calls |
 | `Echo/Models/MarkdownBlocks.swift`, `Echo/Services/SyntaxHighlighter.swift` | `core/markdown` | 1, 4 | parser, inline spans (new: iOS used Foundation's), path links, highlighter done; Compose rendering in phase 4 |
 | `Shared/PushSeal.swift` | `core/crypto` | 1, 7 | done, passes the plugin's vectors; PushOffer too (it duplicates a little of SetupCode's link reading, to fold into core/model) |
 | `ConversationStore.swift`, `Drafts.swift`, `Settings.swift`, `Keychain.swift`, `Models/HermesServer.swift` | `core/data` | 2 | |
@@ -59,3 +59,14 @@ moved to `src/test/resources/fixtures/` where they are long. The crypto vectors 
 Google's Maven repository and the Android SDK are not reachable from every machine (cloud agents
 included). `./gradlew -Predde.jvmOnly=true test` leaves the Android modules out and builds and
 tests the `core/*` JVM modules from Maven Central alone.
+
+## Next steps (in order)
+
+1. On a machine with the Android SDK: `./gradlew :app:assembleDebug`, fix the Android modules and
+   versions (never compiled yet).
+2. Finish phase 1: `SessionBackend`, `ConnectionTester`, Dashboard `rejoin`/`watchHost` and browser
+   sign-in, the rest of the Dashboard REST helpers.
+3. Phase 2 (`core/data`): `ConversationStore` (same JSON as iOS), `Settings` + servers, Keystore
+   secret store, then the conversation ViewModel (port of `Conversation.swift`).
+4. Phase 3: the first Compose screens (setup with setup codes, chat list, transcript, composer,
+   approval cards) — the first usable build.

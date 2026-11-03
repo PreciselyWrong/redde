@@ -35,7 +35,7 @@ the protocol spec.
 | Module | Kind | Holds |
 | --- | --- | --- |
 | `core/model` | JVM | Data the app works with: `Message`, `Attachment`, `TurnEvent`, `TurnRequest`, `Interrupt`, `SetupCode`, `CustomHeader`, `Pangolin`, `AgentNotes.kt` (notes sent to the agent), JSON helpers (`Json.kt`) |
-| `core/transport` | JVM | SSE (`Sse.kt`), `StreamingHttp` (OkHttp → `Flow`), `TransportError`, `HermesTransport` interface, `ChatCompletionsTransport`; Hermes API and Dashboard transports to come |
+| `core/transport` | JVM | SSE, `StreamingHttp` (OkHttp → `Flow`), `TransportError`, `HermesTransport`; transports `ChatCompletionsTransport`, `HermesSessionsTransport` + `HermesSessionsApi` + `HermesRuns`, `HermesServeClient` + `HermesServeTransport`; `ConversationHistory`, `BotMessages`, `SessionPage` |
 | `core/markdown` | JVM | Block parser, inline span parser, path links, syntax highlighter |
 | `core/crypto` | JVM | `PushSeal` (X25519/HKDF/AES-GCM, byte-compatible with `companion/hermes-plugin`), `PushOffer` |
 | `core/data` | Android | (empty) conversation store, settings, Keystore-backed secrets — phase 2 |
