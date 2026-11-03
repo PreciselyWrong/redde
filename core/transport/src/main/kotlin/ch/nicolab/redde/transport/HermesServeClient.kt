@@ -267,6 +267,11 @@ class HermesServeClient(
         authenticatedAt = System.currentTimeMillis()
     }
 
+    /** Logs in (or reads the no-sign-in page) without opening the socket: what a connection test proves. */
+    suspend fun ensureLoggedIn() {
+        login(baseUrl ?: throw TransportError.BadUrl())
+    }
+
     private suspend fun openLogin(base: HttpUrl) {
         if (pageToken?.first == base) return
         readPage(base)
