@@ -93,6 +93,20 @@ data class TokenUsage(
 }
 
 /**
+ * How a turn was let go of. A cancelled turn is a stopped one, and the host is told to stop it; one
+ * the app only lets go of, because another conversation was opened, is left to the host to finish,
+ * and its reply is there when the conversation is opened again.
+ */
+class TurnDeparture {
+    private val left = java.util.concurrent.atomic.AtomicBoolean(false)
+
+    /** The app let go of the turn without stopping it. */
+    val hasLeft: Boolean get() = left.get()
+
+    fun leave() = left.set(true)
+}
+
+/**
  * A turn GPT-Live handed to the agent: the recent spoken exchange it refers to, for the agent's eyes
  * only, and whether the Dashboard takes it as a live voice turn itself (Hermes 0.21.3 and later).
  */
@@ -132,6 +146,8 @@ data class TurnRequest(
     val profile: String? = null,
     /** Asked by voice with "Short answers" on: the agent is asked to keep it short. */
     val brief: Boolean = false,
+    /** Marked when the app lets go of the turn without stopping it; null, every cancellation stops. */
+    val departure: TurnDeparture? = null,
     /** The folder a new conversation starts in on the Dashboard (a project's). */
     val folder: String? = null,
     /** The provider's fast tier for this turn (the Hermes API). */
