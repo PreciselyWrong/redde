@@ -20,7 +20,7 @@ dependencyResolutionManagement {
 rootProject.name = "redde"
 
 // Pure Kotlin/JVM modules: all the protocol, parsing and crypto logic, testable without Android.
-include(":core:model", ":core:transport", ":core:markdown", ":core:crypto")
+include(":core:model", ":core:transport", ":core:markdown", ":core:crypto", ":core:store")
 
 // Android modules. `-Predde.jvmOnly=true` leaves them out, for machines without the Android SDK
 // or Google's Maven repository (the JVM modules then build and test on their own).

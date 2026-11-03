@@ -112,7 +112,8 @@ and test those alone:
 | `core/transport/` | The three connections: Hermes Dashboard (WebSocket JSON-RPC), Hermes API (runs and SSE), OpenAI-compatible (JVM) |
 | `core/markdown/` | The markdown parser and syntax highlighter (JVM) |
 | `core/crypto/` | End-to-end encryption of push notifications, compatible with the `redde-push` plugin (JVM) |
-| `core/data/` | Conversations on disk, settings, secrets |
+| `core/store/` | Conversations on disk in the iOS format, saved servers, the secret store's account names (JVM) |
+| `core/data/` | Android storage: Keystore-encrypted secrets, settings |
 | `feature/voice/`, `feature/phonetools/`, `feature/terminal/` | Voice mode, the agent's phone tools, the SSH terminal |
 | `companion/` | The website, the push-notification relay Worker and the Hermes plugin that feeds it |
 | `scripts/` | Setup codes, the Hermes lab for testing against stock gateways, stand-in servers |

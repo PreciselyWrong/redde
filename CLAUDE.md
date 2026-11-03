@@ -38,7 +38,8 @@ the protocol spec.
 | `core/transport` | JVM | SSE, `StreamingHttp` (OkHttp → `Flow`), `TransportError`, `HermesTransport`; transports `ChatCompletionsTransport`, `HermesSessionsTransport` + `HermesSessionsApi` + `HermesRuns`, `HermesServeClient` + `HermesServeTransport`; `ConversationHistory`, `BotMessages`, `SessionPage` |
 | `core/markdown` | JVM | Block parser, inline span parser, path links, syntax highlighter |
 | `core/crypto` | JVM | `PushSeal` (X25519/HKDF/AES-GCM, byte-compatible with `companion/hermes-plugin`), `PushOffer` |
-| `core/data` | Android | (empty) conversation store, settings, Keystore-backed secrets — phase 2 |
+| `core/store` | JVM | `ConversationStore` (iOS JSON files), `ConversationRecord`/`Summary`, `OutboxItem`, `HermesServer`, `SecretStore` interface and account names, `FolderAttachmentFiles` |
+| `core/data` | Android | (empty) Keystore-backed `SecretStore`, DataStore settings — phase 2 |
 | `feature/voice`, `feature/phonetools`, `feature/terminal` | Android | (empty) phases 5–8; voice resources already moved here |
 | `app` | Android | Minimal Compose shell, manifest, icon, 18 languages of strings |
 
