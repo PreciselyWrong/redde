@@ -687,3 +687,50 @@ suspend fun HermesServeClient.respondSecret(runtimeSession: String, requestId: S
 fun HermesServeClient.interrupt(runtimeSession: String) {
     kotlinx.coroutines.GlobalScope.launch(Dispatchers.IO) { runCatching { call("session.interrupt", buildJsonObject { put("session_id", runtimeSession) }) } }
 }
+
+// Sessions on the Dashboard, past the turn.
+
+/** A stored session's whole history (`session.resume` with its messages), and the host's to-do list for it. */
+suspend fun HermesServeClient.history(stored: String): Pair<List<JsonElement>, List<ch.nicolab.redde.model.TodoItem>?> {
+    // The socket may have dropped since the list was fetched; a long transcript also takes the host a while.
+    ensureConnected()
+    val result = resume(stored, withMessages = true)
+    val messages = (result["messages"] as? kotlinx.serialization.json.JsonArray)?.toList() ?: emptyList()
+    return messages to ch.nicolab.redde.model.TodoList.list(result["todo_state"])
+}
+
+/** Every profile's sessions at once, each with its profile, newest first (Hermes 0.21.0 on). */
+suspend fun HermesServeClient.allProfileSessions(limit: Int = 150): List<SessionSummary> =
+    (rest("GET", "api/profiles/sessions", listOf("profile" to "all", "order" to "recent", "limit" to "$limit"))["sessions"] as? kotlinx.serialization.json.JsonArray)
+        ?.mapNotNull(SessionSummary::from) ?: emptyList()
+
+/** A profile's archived sessions, hidden ones included (Hermes 0.22). */
+suspend fun HermesServeClient.archivedSessions(profile: String, limit: Int = 100): List<SessionSummary> =
+    (rest("GET", "api/profiles/sessions", listOf("profile" to profile, "archived" to "only", "order" to "recent", "limit" to "$limit"))["sessions"] as? kotlinx.serialization.json.JsonArray)
+        ?.mapNotNull(SessionSummary::from) ?: emptyList()
+
+suspend fun HermesServeClient.deleteSession(stored: String) {
+    ensureConnected()
+    call("session.delete", buildJsonObject { put("session_id", stored) })
+}
+
+/** Branches a session in place; the new session's stored id, where the host says. */
+suspend fun HermesServeClient.branchSession(stored: String, title: String?): String? {
+    ensureConnected()
+    val (runtime, _) = openSession(stored)
+    val result = call("session.branch", buildJsonObject {
+        put("session_id", runtime)
+        title?.ifEmpty { null }?.let { put("name", it) }
+    })
+    return result["stored_session_id"].str ?: result["session_key"].str ?: result["session_id"].str
+}
+
+/** Guidance into the running turn; false when the host takes no more (4010). */
+suspend fun HermesServeClient.steer(stored: String, text: String): Boolean {
+    val runtime = runtimeId(stored) ?: throw TransportError.Malformed("session isn't open on this connection")
+    return try {
+        call("session.steer", buildJsonObject { put("session_id", runtime); put("text", text) })["status"].str == "queued"
+    } catch (e: HermesServeClient.RpcError) {
+        if (e.code == 4010) false else throw e
+    }
+}
