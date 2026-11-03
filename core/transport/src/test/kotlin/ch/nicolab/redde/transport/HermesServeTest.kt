@@ -76,6 +76,11 @@ class HermesServeTest {
             when (frame["method"].str) {
                 "client.capabilities" -> result("{}")
                 "session.create" -> result("""{"session_id":"rt-1","stored_session_id":"st-1"}""")
+                "session.resume" -> {
+                    result("""{"session_id":"rt-1","running":true,"inflight":{"user":"Long job?","assistant":"Work"}}""")
+                    event("message.delta", """{"text":"ing on it."}""")
+                    event("message.complete", """{"text":"Working on it."}""")
+                }
                 "prompt.submit" -> {
                     result("""{"status":"ok"}""")
                     if (ask) {
@@ -146,6 +151,19 @@ class HermesServeTest {
         assertEquals("Done.", events.filterIsInstance<TurnEvent.TextDelta>().single().text)
         val answer = frames.first { it["id"].str == "host-7" }
         assertEquals(JsonPrimitive("once"), answer["result"]["choice"])
+        client.disconnect()
+    }
+
+    @Test
+    fun aTurnRunningOnTheHostIsJoined() = runBlocking {
+        startDashboard("unused")
+        val client = HermesServeClient(endpoint(server.url("/")), password = { null })
+        val turn = withTimeout(20_000) { HermesServeTransport(client).rejoin("st-1") }!!
+        assertEquals("Long job?", turn.question)
+        val events = withTimeout(20_000) { turn.events.toList() }
+        assertEquals("Working on it.", events.filterIsInstance<TurnEvent.TextDelta>().joinToString("") { it.text },
+            "what the reply said so far, then what came while the host answered")
+        assertEquals(TurnEvent.Done, events.last())
         client.disconnect()
     }
 

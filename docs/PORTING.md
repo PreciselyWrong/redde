@@ -27,7 +27,7 @@ widgets and Control Center (Glance), the Mac build, AirPods head gestures (no An
 | `Echo/Resources/Fonts` | `app/src/main/res/font` | 0 | moved |
 | `Echo/Resources/Earcons`, `VoiceWords.json` | `feature/voice/src/main/res/raw`, `feature/voice/src/main/assets` | 0 | moved |
 | `Echo/Models/*`, `Shared/Attachment.swift`, `Shared/ReplyMedia.swift` | `core/model` | 1 | messages, turn events, interrupts, attachments, setup codes, custom headers, Pangolin, agent notes done; reply cards to do (phase 4) |
-| `Echo/Services/Transport/*`, `SessionBackend.swift`, `ConversationHistory.swift`, `ConnectionTester.swift`, `DashboardSignIn.swift` | `core/transport` | 1 | done: SSE, streaming HTTP, errors, OpenAI-compatible, Hermes API (REST, runs, chat stream), transcripts (`ConversationHistory`, `BotMessages`), Dashboard client (password and no-sign-in login, ws-ticket, JSON-RPC socket with ping and reconnect, host requests and answers, sessions, slash commands) and turn (with 90 s recovery). Also done: `ConnectionTester`, `SessionBackend` (operations). To do: Dashboard browser sign-in (PKCE), `rejoin`/`watchHost`, Dashboard REST extras (skills, files, toolsets, projects, profiles, plugins), `SessionBackend.everyProfile`, bots/groups/plugins transports, `TodoList` from tool calls |
+| `Echo/Services/Transport/*`, `SessionBackend.swift`, `ConversationHistory.swift`, `ConnectionTester.swift`, `DashboardSignIn.swift` | `core/transport` | 1 | done: SSE, streaming HTTP, errors, OpenAI-compatible, Hermes API (REST, runs, chat stream), transcripts (`ConversationHistory`, `BotMessages`), Dashboard client (password and no-sign-in login, ws-ticket, JSON-RPC socket with ping and reconnect, host requests and answers, sessions, slash commands) and turn (with 90 s recovery). Also done: `ConnectionTester`, `SessionBackend` (operations). Also `rejoin`/`watchHost`. To do: Dashboard browser sign-in (PKCE), Dashboard REST extras (skills, files, toolsets, projects, profiles, plugins), `SessionBackend.everyProfile`, bots/groups/plugins transports, `TodoList` from tool calls |
 | `Echo/Models/MarkdownBlocks.swift`, `Echo/Services/SyntaxHighlighter.swift` | `core/markdown` | 1, 4 | parser, inline spans (new: iOS used Foundation's), path links, highlighter done; Compose rendering in phase 4 |
 | `Shared/PushSeal.swift` | `core/crypto` | 1, 7 | done, passes the plugin's vectors; PushOffer too (it duplicates a little of SetupCode's link reading, to fold into core/model) |
 | `ConversationStore.swift`, `Models/OutboxItem.swift`, `Models/HermesServer.swift`, `Keychain.swift` (account names) | `core/store` (JVM) | 2 | done: records and index in the iOS JSON, debounced writes, attachment files, servers, `SecretStore` interface and account names |
@@ -65,7 +65,7 @@ tests the `core/*` JVM modules from Maven Central alone.
 
 1. On a machine with the Android SDK: `./gradlew :app:assembleDebug`, fix the Android modules and
    versions (never compiled yet).
-2. Finish phase 1: Dashboard `rejoin`/`watchHost` and browser sign-in, the rest of the Dashboard
+2. Finish phase 1: the Dashboard browser sign-in (PKCE) and the rest of the Dashboard
    REST helpers.
 3. Phase 2: in `core/data` the Keystore `SecretStore` and the settings/server list (DataStore);
    then the conversation ViewModel (port of `Conversation.swift`) over `core/store` and `core/transport`.

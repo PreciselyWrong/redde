@@ -45,7 +45,7 @@ import java.util.Base64
  * submitted, and the session's events heard until `message.complete` (port of
  * HermesServeTransport.swift). A dropped socket is waited out for 90 s and the turn taken up again.
  *
- * Not ported yet: [rejoin] (joining a turn already running on the host) and [watchHost].
+ * [rejoin] joins a turn already running on the host; [watchHost] says when the host starts one.
  */
 class HermesServeTransport(private val client: HermesServeClient) : HermesTransport {
 
@@ -99,6 +99,71 @@ class HermesServeTransport(private val client: HermesServeClient) : HermesTransp
             listener?.let(client::removeListener)
             turn?.recoverJob?.cancel()
         }
+    }
+
+    /**
+     * The turn under way in [stored] on the host, when the app isn't following it: it was closed while
+     * the agent worked, or the turn was started somewhere else. Null when nothing runs or waits there.
+     * Events that come while the host answers are kept and heard once the session's id is known.
+     */
+    override suspend fun rejoin(stored: String): RejoinedTurn? {
+        client.ensureConnected()
+        val heard = kotlinx.coroutines.channels.Channel<HermesServeClient.Event>(kotlinx.coroutines.channels.Channel.UNLIMITED)
+        val listener = client.addListener { heard.trySend(it) }
+        val info: JsonElement
+        val turn: TurnState
+        try {
+            info = client.resume(stored, withMessages = false)
+            turn = TurnState(info["session_id"].str ?: throw TransportError.Malformed("resume gave no session id"), stored)
+        } catch (e: Exception) {
+            client.removeListener(listener)
+            heard.close()
+            throw e
+        }
+        // Asked before this listener was here (the turn began while no one followed it): put again.
+        val waiting = client.replayOpenRequests(info, includingKnown = true)
+        if (info["running"].bool != true && waiting == 0) {
+            client.removeListener(listener)
+            heard.close()
+            return null
+        }
+        turn.underWay = true
+        val soFar = info["inflight"]["assistant"].str?.ifEmpty { null }
+        val events = channelFlow {
+            val finished = CompletableDeferred<Unit>()
+            try {
+                soFar?.let {
+                    turn.streamed.append(it)
+                    send(TurnEvent.TextDelta(it))
+                }
+                val reader = launch { for (event in heard) hear(event, turn, this@channelFlow, finished) }
+                finished.await()
+                reader.cancel()
+                send(TurnEvent.Done)
+            } finally {
+                // No longer listened to; the turn goes on.
+                client.removeListener(listener)
+                heard.close()
+                turn.recoverJob?.cancel()
+            }
+        }
+        return RejoinedTurn(
+            question = info["inflight"]["user"].str ?: "",
+            events = events,
+            stop = { client.interrupt(turn.runtime) },
+            transcript = { ConversationHistory.fromServeRows(client.history(stored).first) },
+        )
+    }
+
+    /**
+     * Calls [started] when the host starts a turn of its own in [stored] (a kanban card the agent
+     * finished, waking it); the app then joins it as [rejoin] does. Returns what ends the watch.
+     */
+    override suspend fun watchHost(stored: String, started: () -> Unit): (() -> Unit)? {
+        val listener = client.addListener { event ->
+            if (event.type in TURN_EVENTS && client.isSession(event.sessionId, stored)) started()
+        }
+        return { client.removeListener(listener) }
     }
 
     private fun hear(event: HermesServeClient.Event, turn: TurnState, out: ProducerScope<TurnEvent>, finished: CompletableDeferred<Unit>) {
